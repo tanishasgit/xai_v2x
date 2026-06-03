@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""
+XAI V2X Decision System — Advanced Simulation
+---------------------------------------------------------------------------
+This system serves as a deterministic safety-gate layer for autonomous vehicles.
+In safety-critical engineering, we cannot rely solely on "black-box" Deep Learning models 
+because we need to know exactly *why* a vehicle made a decision. 
+
+This script uses Explainable AI (XAI) rule-based logic to process multi-modal inputs:
+1. On-board Sensors (Radar, Camera distance, and Confidence metrics)
+2. V2X Mesh Network (Direct telemetry alerts from traffic lights and emergency vehicles)
+3. Environmental Conditions (Road friction and weather hazards)
+---------------------------------------------------------------------------
+"""
+
+import time
+
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+
+def print_banner():
+    print(f"{Colors.HEADER}{Colors.BOLD}" + "="*65)
+    print("      XAI V2X DECISION SYSTEM — ADVANCED SAFETY EDGE CASES")
+    print("="*65 + f"{Colors.ENDC}\n")
+
+scenarios = [
+    {
+        "id": "SCEN-001",
+        "name": "Pedestrian Emergency (Baseline Test)",
+        "ego_speed": 35,
+        "vehicle_ahead_dist": 25.0,
+        "pedestrian_dist": 2.1,
+        "traffic_light": "GREEN",
+        "road_condition": "DRY",
+        "v2x_alert": "NONE",
+        "sensor_confidence": 1.0
+    },
+    {
+        "id": "SCEN-002",
+        "name": "Sensor Conflict (Heavy Rain Ghost-Brake Mitigation)",
+        "ego_speed": 60,
+        "vehicle_ahead_dist": 4.5,
+        "pedestrian_dist": 40.0,
+        "traffic_light": "GREEN",
+        "road_condition": "HEAVY_RAIN",
+        "v2x_alert": "NONE",
+        "sensor_confidence": 0.35
+    },
+    {
+        "id": "SCEN-003",
+        "name": "Intersection Blind Spot (V2X Preemption Priority)",
+        "ego_speed": 50,
+        "vehicle_ahead_dist": 50.0,
+        "pedestrian_dist": 30.0,
+        "traffic_light": "GREEN",
+        "road_condition": "DRY",
+        "v2x_alert": "AMBULANCE_CROSSING",
+        "sensor_confidence": 1.0
+    },
+    {
+        "id": "SCEN-004",
+        "name": "Hydroplaning Risk on Flooded Curve Geometry",
+        "ego_speed": 95,
+        "vehicle_ahead_dist": 75.0,
+        "pedestrian_dist": 50.0,
+        "traffic_light": "GREEN",
+        "road_condition": "FLOODED",
+        "v2x_alert": "SHARP_CURVE_AHEAD",
+        "sensor_confidence": 0.95
+    },
+    {
+        "id": "SCEN-005",
+        "name": "The Kinematic Dilemma (Rear Tailgating + Front Pedestrian Encroachment)",
+        "ego_speed": 45,
+        "vehicle_ahead_dist": 35.0,
+        "pedestrian_dist": 3.2,
+        "traffic_light": "GREEN",
+        "road_condition": "DRY",
+        "v2x_alert": "REAR_TAILGATER_CLOSE",
+        "sensor_confidence": 1.0
+    }
+]
+
+def evaluate_v2x_rules(s):
+    rules_fired = []
+    
+    if s["pedestrian_dist"] <= 3.0 and s["v2x_alert"] != "REAR_TAILGATER_CLOSE":
+        rules_fired.append("R1-CRIT-PED")
+        return (f"{Colors.FAIL}⚡ EMERGENCY BRAKE{Colors.ENDC}", rules_fired, 
+                "Pedestrian detected inside critical 3m hazard zone. Initiating max pneumatic brake pressure.")
+
+    if s["v2x_alert"] == "AMBULANCE_CROSSING":
+        rules_fired.append("R2-V2X-OVERRIDE")
+        return (f"{Colors.WARNING}⚡ YIELD & SECURE STOP{Colors.ENDC}", rules_fired, 
+                "V2X infrastructure broadcasts approaching emergency vehicle crossing intersection. Overriding local GREEN light status.")
+
+    if s["v2x_alert"] == "REAR_TAILGATER_CLOSE" and s["pedestrian_dist"] <= 4.0:
+        rules_fired.append("R3-DILEMMA-MITIGATION")
+        return (f"{Colors.WARNING}⚡ PROGRESSIVE BRAKE & LATERAL OFFSET{Colors.ENDC}", rules_fired, 
+                "Pedestrian encroaching while ego vehicle is severely tailgated. Applying phased soft-braking to minimize rear-impact velocity vector while executing slight lateral lane shift.")
+
+    if s["road_condition"] == "HEAVY_RAIN" and s["sensor_confidence"] < 0.5 and s["vehicle_ahead_dist"] < 10.0:
+        rules_fired.append("R4-FUSION-CONFIDENCE")
+        return (f"{Colors.CYAN}⚡ CAUTIOUS DECELERATION{Colors.ENDC}", rules_fired, 
+                "Radar obstacle distance falls below threshold, but Confidence Score is low due to severe precipitation attenuation. Suppressing emergency ghost-brake routine to protect traffic flow; shifting to manual target confirmation.")
+
+    if s["road_condition"] == "FLOODED" and s["ego_speed"] > 50:
+        rules_fired.append("R5-HYDROPLANE-CONTROL")
+        return (f"{Colors.WARNING}⚡ HEAVY DECELERATION{Colors.ENDC}", rules_fired, 
+                "Ego kinetic velocity exceeds safe friction coefficients for flooded surfaces. Actively reducing speed below critical aquaplaning threshold prior to curve entry.")
+
+    rules_fired.append("R0-NOMINAL")
+    return (f"{Colors.GREEN}⚡ PROCEED{Colors.ENDC}", rules_fired, 
+            "No active safety violation constraints detected. Maintaining planned trajectory path.")
+
+def run_simulation():
+    print_banner()
+    for idx, case in enumerate(scenarios, 1):
+        print(f"{Colors.BOLD}Scenario {idx}/{len(scenarios)}: {case['name']}{Colors.ENDC}")
+        print("-" * 65)
+        print(f"  [TELEMETRY] Speed: {case['ego_speed']} km/h | Target Lead Dist: {case['vehicle_ahead_dist']}m")
+        print(f"  [SENSORS]   Pedestrian: {case['pedestrian_dist']}m | Confidence: {int(case['sensor_confidence']*100)}%")
+        print(f"  [V2X MESH]  Signal: {case['traffic_light']} | Alert Layer: {case['v2x_alert']} | Surface: {case['road_condition']}")
+        print(" " + "." * 61)
+        decision, rules, explanation = evaluate_v2x_rules(case)
+        print(f"  {Colors.BOLD}SYSTEM DECISION :{Colors.ENDC} {decision}")
+        print(f"  {Colors.BOLD}RULES TRIGGERED :{Colors.ENDC} {rules}")
+        print(f"  {Colors.BOLD}EXPLANATION     :{Colors.ENDC} {explanation}")
+        print("=" * 65 + "\n")
+        time.sleep(0.6)
+
+if __name__ == "__main__":
+    run_simulation()
