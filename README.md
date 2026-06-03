@@ -78,7 +78,7 @@ It's not a perfect solution. There isn't one. But it's a reasoned, explainable t
 No installations. No dependencies. Just Python 3.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/xai-v2x
+git clone https://github.com/tanishasgit/xai-v2x
 cd xai-v2x
 python xai_v2x_advanced.py
 ```
